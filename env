@@ -1,0 +1,11 @@
+DATABASE_URL="postgresql://role_9ea5f7542:izRYayzPIqyOPm7velvfxK2Vk5f0qdhR@db-9ea5f7542.db101.hosteddb.reai.io:5432/9ea5f7542?connect_timeout=15"
+AWS_PROFILE=hosted_storage
+AWS_REGION=us-east-1
+AWS_BUCKET_NAME=abacusai-apps-25f1b336868d314f07f170ac-us-east-1
+AWS_FOLDER_PREFIX=1205/
+
+# Connect to Postgres via the shared transaction-mode pooler (IPv4-only)
+DATABASE_URL="postgresql://postgres.dpoeuteufrrunfzvkwsj:PV29sjx1SnrfROVY@aws-0-us-west-2.pooler.supabase.com:6543/postgres?pgbouncer=true"
+
+# Connect to Postgres via the shared session-mode pooler (used for migrations)
+DIRECT_URL="postgresql://postgres.dpoeuteufrrunfzvkwsj:PV29sjx1SnrfROVY@aws-0-us-west-2.pooler.supabase.com:5432/postgres"
