@@ -1,0 +1,167 @@
+generator client {
+    provider = "prisma-client-js"
+    binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
+    output = "/home/ubuntu/takeoff_app/nextjs_space/node_modules/.prisma/client"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+model Sheet {
+  id           String        @id @default(cuid())
+  name         String
+  category     String        @default("Floor Plans")
+  scale        String        @default("1/4\" = 1'")
+  pageIndex    Int           @default(0)
+  sortOrder    Int           @default(0)
+  createdAt    DateTime      @default(now())
+  measurements Measurement[]
+}
+
+model Measurement {
+  id          String   @id @default(cuid())
+  name        String
+  type        String   // "area" | "linear" | "count"
+  color       String   @default("#3B82F6")
+  value       Float    @default(0)
+  unit        String   @default("SQ FT")
+  segmentCount Int     @default(1)
+  visible     Boolean  @default(true)
+  isAI        Boolean  @default(false)
+  flagged     Boolean  @default(false)
+  flagReason  String?
+  confidence  Int?
+  edited      Boolean  @default(false)
+  groupId     String?  // parent measurement id for grouping
+  markupData  Json     @default("{}")
+  sortOrder   Int      @default(0)
+  sheet       Sheet?   @relation(fields: [sheetId], references: [id], onDelete: SetNull)
+  sheetId     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  assignments Assignment[]
+}
+
+model KeyMeasure {
+  id          String   @id @default(cuid())
+  name        String
+  color       String   @default("#3B82F6")
+  category    String   @default("General")
+  subcategory String?  
+  type        String   @default("area")
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  assignments Assignment[]
+  products    KeyMeasureProduct[]
+}
+
+model Section {
+  id        String   @id @default(cuid())
+  name      String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  assignments Assignment[]
+}
+
+model Use {
+  id        String   @id @default(cuid())
+  name      String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  assignments Assignment[]
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  sku         String?
+  unit        String   @default("EA")
+  category    String   @default("General")
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  keyMeasures        KeyMeasureProduct[]
+  materialGroups     MaterialGroupProduct[]
+  assignmentProducts AssignmentProduct[]
+}
+
+model MaterialGroup {
+  id          String   @id @default(cuid())
+  name        String
+  category    String   @default("General")
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  products    MaterialGroupProduct[]
+  assignments Assignment[]
+}
+
+model KeyMeasureProduct {
+  id           String     @id @default(cuid())
+  keyMeasure   KeyMeasure @relation(fields: [keyMeasureId], references: [id], onDelete: Cascade)
+  keyMeasureId String
+  product      Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId    String
+  quantity     Float      @default(1)
+  sortOrder    Int        @default(0)
+
+  @@unique([keyMeasureId, productId])
+}
+
+model MaterialGroupProduct {
+  id              String        @id @default(cuid())
+  materialGroup   MaterialGroup @relation(fields: [materialGroupId], references: [id], onDelete: Cascade)
+  materialGroupId String
+  product         Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId       String
+  quantity        Float         @default(1)
+  sortOrder       Int           @default(0)
+
+  @@unique([materialGroupId, productId])
+}
+
+model AssignmentProduct {
+  id           String     @id @default(cuid())
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  assignmentId String
+  product      Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId    String
+  quantity     Float      @default(1)
+  createdAt    DateTime   @default(now())
+
+  @@unique([assignmentId, productId])
+}
+
+model ActivityLog {
+  id          String   @id @default(cuid())
+  action      String   // "create" | "rename" | "update" | "visibility" | "delete" | "duplicate" | "assign" | "unassign" | "auto_takeoff"
+  entityType  String   @default("measurement") // "measurement" | "keyMeasure"
+  entityId    String?
+  entityName  String?
+  description String
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model Assignment {
+  id            String       @id @default(cuid())
+  measurement   Measurement  @relation(fields: [measurementId], references: [id], onDelete: Cascade)
+  measurementId String
+  targetType    String       @default("keyMeasure") // "keyMeasure" | "materialGroup" | "products"
+  keyMeasure    KeyMeasure?  @relation(fields: [keyMeasureId], references: [id], onDelete: Cascade)
+  keyMeasureId  String?
+  materialGroup MaterialGroup? @relation(fields: [materialGroupId], references: [id], onDelete: SetNull)
+  materialGroupId String?
+  section       Section?     @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  sectionId     String?
+  use           Use?         @relation(fields: [useId], references: [id], onDelete: SetNull)
+  useId         String?
+  multiplier    Float        @default(1)
+  fromQuickMeasure Boolean   @default(false)
+  createdAt     DateTime     @default(now())
+  products      AssignmentProduct[]
+
+  @@unique([measurementId, keyMeasureId])
+}
